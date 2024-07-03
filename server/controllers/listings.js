@@ -2,6 +2,7 @@ import Listing from "../models/listings.js";
 import uploadImageToCloudinary from "../utils/uploadImageToCloudinary.js";
 import cloudinary from "cloudinary";
 import fs from "fs";
+
 // Create a new listing
 export const createListing = async (req, res) => {
   const {
@@ -26,20 +27,15 @@ export const createListing = async (req, res) => {
         "listings"
       );
       // Delete the file from the local filesystem
-      console.log("file.path",file.path);
       fs.rm(file.path, (err) => {
         if (err) {
           console.error("Error deleting file:", err);
-        } else {
-          console.log("Local file deleted");
         }
       });
       return cloudinaryResponse.secure_url;
     });
 
     const imageUrls = await Promise.all(imageUploadPromises);
-
-    console.log("img urls", imageUrls);
 
     const newListing = new Listing({
       name,
@@ -57,15 +53,10 @@ export const createListing = async (req, res) => {
       userRef,
     });
 
-    console.log("newListing", newListing);
-
     await newListing.save();
 
-    res
-      .status(201)
-      .json({ newListing, message: "Listing created successfully" });
+    res.status(201).json({ newListing, message: "Listing created successfully" });
   } catch (error) {
-    console.log(error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -74,12 +65,8 @@ export const createListing = async (req, res) => {
 export const getListings = async (req, res) => {
   try {
     const listings = await Listing.find();
-    console.log("listings", listings);
-    res
-      .status(200)
-      .json({ listings, message: "data of listings fetched successfully" });
+    res.status(200).json({ listings, message: "Data of listings fetched successfully" });
   } catch (error) {
-    console.log("error", error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -100,27 +87,20 @@ export const getListingById = async (req, res) => {
 };
 
 // Update a listing
-
-export const updateListingById = async (req, res, next) => {
+export const updateListingById = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log("id of req.params", id);
     const listing = await Listing.findById(id);
-    console.log("listing", listing);
 
     if (!listing) {
       return res.status(404).json({ message: "Listing not found" });
     }
 
     if (req.user.id !== listing.userRef) {
-      return res
-        .status(403)
-        .json({ message: "You can update only your listing" });
+      return res.status(403).json({ message: "You can update only your listing" });
     }
 
     const updateData = req.body;
-    console.log("req.body", req.body);
-    console.log("req.files", req.files);
 
     // Check if files were uploaded
     if (req.files && req.files.length > 0) {
@@ -153,11 +133,9 @@ export const updateListingById = async (req, res, next) => {
     const updatedListing = await Listing.findByIdAndUpdate(id, updateData, {
       new: true,
     });
-    console.log("updatedListing in backend", updatedListing);
 
     res.status(200).json(updatedListing);
   } catch (error) {
-    console.error("Error updating listing:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -178,27 +156,7 @@ export const deleteListing = async (req, res) => {
 };
 
 // Search for listings
-// export const searchListings = async (req, res) => {
-//   const { query } = req.query;
-
-//   try {
-//     // Perform a case-insensitive search for listings that match the query
-//     const listings = await Listing.find({
-//       $or: [
-//         { name: { $regex: query, $options: "i" } },
-//         { description: { $regex: query, $options: "i" } },
-//         { address: { $regex: query, $options: "i" } },
-//       ],
-//     });
-
-//     res.status(200).json({ listings, message: "Listings found" });
-//   } catch (error) {
-//     console.error("Error searching listings:", error);
-//     res.status(500).json({ error: "Internal server error" });
-//   }
-// };
-
-export const getListingsforSearch = async (req, res, next) => {
+export const getListingsforSearch = async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 9;
     const startIndex = parseInt(req.query.startIndex) || 0;
@@ -242,13 +200,9 @@ export const getListingsforSearch = async (req, res, next) => {
       .sort({ [sort]: order })
       .limit(limit)
       .skip(startIndex);
-    console.log("listings",listings);
-    return res.status(200).json(listings);
+
+    res.status(200).json(listings);
   } catch (error) {
-    console.log("error",error);
-    res.json({
-      error: error,
-      message:"unable to fetch data"
-    });
+    res.status(500).json({ error: error.message, message: "Unable to fetch data" });
   }
 };
