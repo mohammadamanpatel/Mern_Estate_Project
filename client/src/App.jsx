@@ -1,37 +1,66 @@
-import React from "react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
-import Header from "./Components/pages/Header";
+import React, { Suspense, lazy } from "react";
+import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import ErrorBoundary from "./ErrorBoundary"; // Ensure correct path
+import { useSelector } from "react-redux";
+
+// Lazy load your non-protected components
+const Header = lazy(() => import("./Components/pages/Header"));
+const SignUp = lazy(() => import("./Components/pages/SignUp.jsx"));
+const SignIn = lazy(() => import("./Components/pages/SignIn.jsx"));
+const About = lazy(() => import("./Components/pages/About.jsx"));
+const Listing = lazy(() => import("./Components/pages/Listing.jsx"));
+const Search = lazy(() => import("./Components/pages/Search.jsx"));
+const Home = lazy(() => import("./Components/pages/Home.jsx"));
+
+// Direct imports for protected routes
 import { Profile } from "./Components/pages/Profile.jsx";
-import SignUp from "./Components/pages/SignUp.jsx";
-import SignIn from "./Components/pages/SignIn.jsx";
-import PrivateRoute from "./Components/PrivateRoute.jsx";
-import About from "./Components/pages/About.jsx";
-import AddListings  from "./Components/AddListings.jsx";
-import Listing from "./Components/pages/Listing.jsx";
+import AddListings from "./Components/AddListings.jsx";
 import EditListing from "./Components/EditListing.jsx";
-import  Search  from "./Components/pages/Search.jsx";
-import Home from './Components/pages/Home.jsx'
+
 const App = () => {
+  // Get the current user from the Redux store
+  const { currentUser } = useSelector((state) => state.user);
+  console.log("currentUser in app", currentUser);
+  // Function to check if the user is authenticated
+  const isAuthenticated = currentUser && Object.keys(currentUser).length > 0;
+  console.log("isAuthenticated", isAuthenticated);
+
   return (
     <BrowserRouter>
-      <Header />
+      <ErrorBoundary>
+      {/* Wrap only the lazy-loaded routes in Suspense */}
+      <Suspense fallback={<div>Loading...</div>}>
+        <Header />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/sign-in" element={<SignIn />} />
+          <Route path="/sign-up" element={<SignUp />} />
+          <Route path="/listing/:listingId" element={<Listing />} />
+          <Route path="/search" element={<Search />} />
+          <Route path="/about" element={<About />} />
+        </Routes>
+      </Suspense>
+      {/* Directly render protected routes */}
       <Routes>
-        <Route path="/" element={<Home />}></Route>
-        <Route path="/sign-in" element={<SignIn />} />
-        <Route path="/sign-up" element={<SignUp />} />
-        <Route path='/listing/:listingId' element={<Listing />} />
-        <Route path='/search' element={<Search />} />
-        <Route element={<PrivateRoute />}>
-          <Route path="/profile" element={<Profile />} />
-          <Route path='/create-listing' element={<AddListings />} />
-          <Route
-            path='/update-listing/:listingId'
-            element={<EditListing />}
-          />
-        </Route>
-        <Route path="/about" element={<About/>}></Route>
-
+        <Route
+          path="/profile"
+          element={isAuthenticated ? <Profile /> : <Navigate to="/sign-in" />}
+        />
+        <Route
+          path="/create-listing"
+          element={
+            isAuthenticated ? <AddListings /> : <Navigate to="/sign-in" />
+          }
+          z
+        />
+        <Route
+          path="/update-listing/:listingId"
+          element={
+            isAuthenticated ? <EditListing /> : <Navigate to="/sign-in" />
+          }
+        />
       </Routes>
+      </ErrorBoundary>
     </BrowserRouter>
   );
 };
